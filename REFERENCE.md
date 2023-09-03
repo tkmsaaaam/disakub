@@ -1,0 +1,3 @@
+- https://zenn.dev/ryogrid/articles/f983ab79e36dcb
+- https://buildersbox.corp-sansan.com/entry/2019/10/24/110000
+- https://github.com/ad-sho-loko/bogoDB
