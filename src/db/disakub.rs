@@ -23,7 +23,7 @@ impl Disakub {
         .expect("Error setting Ctrl-C handler");
     }
 
-    pub fn execute(mut self, query: String) -> (Catalog, Storage, String) {
+    pub fn execute(mut self, query: String) -> (Disakub, String) {
         let tokenizer = query::token::new_tokenizer(query.clone());
         let tokens = tokenizer.tokenize();
 
@@ -41,7 +41,7 @@ impl Disakub {
         println!("Query -> {}", query);
         self.catalog = result.0;
         self.storage = result.1;
-        return (self.catalog, self.storage, result.2.message);
+        return (self, result.2.message);
     }
 
     pub fn terminate(self) {

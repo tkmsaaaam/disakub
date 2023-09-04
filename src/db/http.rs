@@ -4,8 +4,6 @@ use std::{
     thread,
 };
 
-use crate::{storage::storage::Storage, Catalog};
-
 use super::disakub::Disakub;
 
 #[derive(Clone, Debug)]
@@ -19,28 +17,26 @@ impl ApiServer {
         let cloned_self = self.clone();
 
         thread::spawn(move || {
-            let mut abc = cloned_self.clone();
+            let mut cloned_api_server = cloned_self.clone();
             for stream in listener.incoming() {
                 let stream = stream.unwrap();
-                abc = thread::spawn({
-                    let mut api_server = abc.clone();
+                cloned_api_server = thread::spawn({
+                    let mut api_server = cloned_api_server.clone();
                     move || {
-                        let res = api_server.clone().handle_connection(stream);
-                        api_server.db.catalog = res.0;
-                        api_server.db.storage = res.1;
+                        api_server.db = api_server.clone().handle_connection(stream);
                         return api_server;
                     }
                 })
                 .join()
                 .unwrap();
             }
-            return abc;
+            return cloned_api_server;
         })
         .join()
         .unwrap();
     }
 
-    fn handle_connection(self, mut stream: TcpStream) -> (Catalog, Storage) {
+    fn handle_connection(self, mut stream: TcpStream) -> Disakub {
         let mut buffer = [0; 1024];
 
         stream.read(&mut buffer).unwrap();
@@ -53,31 +49,30 @@ impl ApiServer {
         if buffer.starts_with(execute) {
             if buffer.starts_with(create) {
                 let res = self.execute_handler(String::from("create"));
-                return (res.0, res.1);
+                return res;
             } else if buffer.starts_with(select) {
                 let res = self.execute_handler(String::from("select"));
-                return (res.0, res.1);
+                return res;
             } else if buffer.starts_with(insert) {
                 let res = self.execute_handler(String::from("insert"));
-                return (res.0, res.1);
+                return res;
             }
-            return (self.db.catalog.clone(), self.db.storage.clone());
+            return self.db;
         } else if buffer.starts_with(exit) {
             self.clone().exit_handler();
         }
 
-        return (self.db.catalog, self.db.storage);
+        return self.db;
     }
 
-    fn execute_handler(mut self, query: String) -> (Catalog, Storage) {
+    fn execute_handler(mut self, query: String) -> Disakub {
         println!("Executed");
 
         let res = self.db.clone().execute(query);
-        self.db.catalog = res.0;
-        self.db.storage = res.1;
+        self.db = res.0;
 
-        println!("Message: {}", res.2);
-        return (self.db.catalog.clone(), self.db.storage.clone());
+        println!("Message: {}", res.1);
+        return self.db;
     }
 
     fn exit_handler(self) {
